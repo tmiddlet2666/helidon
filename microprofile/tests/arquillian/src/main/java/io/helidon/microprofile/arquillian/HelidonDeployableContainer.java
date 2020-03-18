@@ -27,7 +27,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,6 +41,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.enterprise.inject.spi.DefinitionException;
 
@@ -189,7 +193,7 @@ public class HelidonDeployableContainer implements DeployableContainer<HelidonCo
 
     void startServer(RunContext context, URL[] classPath, Set<String> classNames)
             throws ReflectiveOperationException {
-        context.classLoader = new MyClassloader(new URLClassLoader(classPath));
+        context.classLoader = new MyClassloader(containerConfig.getExcludeArchivePattern(), new URLClassLoader(classPath));
 
         context.oldClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(context.classLoader);
@@ -397,10 +401,12 @@ public class HelidonDeployableContainer implements DeployableContainer<HelidonCo
 
     static class MyClassloader extends ClassLoader implements Closeable {
         private final URLClassLoader wrapped;
+        private final Pattern excludePattern;
 
-        MyClassloader(URLClassLoader wrapped) {
+        MyClassloader(String excludeArchivePattern, URLClassLoader wrapped) {
             super(wrapped);
             this.wrapped = wrapped;
+            this.excludePattern = (null == excludeArchivePattern ? null : Pattern.compile(excludeArchivePattern));
         }
 
         @Override
@@ -410,6 +416,33 @@ public class HelidonDeployableContainer implements DeployableContainer<HelidonCo
                 return wrapped.getResourceAsStream(name.substring(1));
             }
             return stream;
+        }
+
+
+        @Override
+        public Enumeration<URL> getResources(String name) throws IOException {
+            if (excludePattern == null) {
+                return super.getResources(name);
+            }
+
+            if ("META-INF/beans.xml".equals(name)) {
+                // workaround for graphql tck - need to exclude the TCK jar
+                Enumeration<URL> resources = wrapped.getResources(name);
+                List<URL> theList = new LinkedList<>();
+                while (resources.hasMoreElements()) {
+                    URL url = resources.nextElement();
+                    String ref = url.toString();
+                    Matcher matcher = excludePattern.matcher(ref);
+                    if (matcher.matches()) {
+                        LOGGER.info("Excluding " + url + " from bean archives.");
+                    } else {
+                        theList.add(url);
+                    }
+                }
+                return Collections.enumeration(theList);
+            }
+
+            return super.getResources(name);
         }
 
         @Override

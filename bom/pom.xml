@@ -141,6 +141,12 @@
                 <artifactId>helidon-microprofile-grpc-client</artifactId>
                 <version>${helidon.version}</version>
             </dependency>
+            <!-- graphQL -->
+            <dependency>
+                <groupId>io.helidon.microprofile.graphql</groupId>
+                <artifactId>helidon-microprofile-graphql-server</artifactId>
+                <version>${helidon.version}</version>
+            </dependency>
             <!-- media -->
             <dependency>
                 <groupId>io.helidon.media</groupId>

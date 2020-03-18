@@ -36,6 +36,7 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
 public class HelidonContainerConfiguration implements ContainerConfiguration {
     private String appClassName = null;
     private String resourceClassName = null;
+    private String excludeArchivePattern = null;
     private int port = 8080;
     private boolean deleteTmp = true;
     private boolean addResourcesToApps = false;
@@ -96,6 +97,14 @@ public class HelidonContainerConfiguration implements ContainerConfiguration {
 
     public boolean getReplaceConfigSourcesWithMp() {
         return replaceConfigSourcesWithMp;
+    }
+
+    public String getExcludeArchivePattern() {
+        return excludeArchivePattern;
+    }
+
+    public void setExcludeArchivePattern(String excludeArchivePattern) {
+        this.excludeArchivePattern = excludeArchivePattern;
     }
 
     @Override
